@@ -40,6 +40,8 @@ module.exports = {
   },
   externals: {
     koa: 'commonjs koa',
+    'koa-static': 'commonjs koa-static',
+    'koa-router': 'commonjs koa-router',
   },
   plugins: [
     new webpack.DefinePlugin({

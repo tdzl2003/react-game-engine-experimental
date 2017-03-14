@@ -15,7 +15,7 @@ module.exports = {
     ww: './src/webworker',
   },
   output: {
-    path: path.resolve(__dirname, `../build/${__DEV__ ? 'debug/web' : 'release'}/web`), // string
+    path: path.resolve(__dirname, `../build/${__DEV__ ? 'debug' : 'release'}/web`), // string
     filename: __DEV__ ? '[name].bundle.js' : '[name].[hash].js', // string
     publicPath: '/', // string
   },
