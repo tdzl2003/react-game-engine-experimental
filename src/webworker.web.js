@@ -4,4 +4,4 @@
 
 console.log('Client running in web worker.');
 
-require('./client/main');
+require('./client/entry');

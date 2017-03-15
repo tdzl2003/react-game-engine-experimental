@@ -1,7 +1,7 @@
 /**
  * Created by tdzl2003 on 2017/3/15.
  */
-import { method } from './Module';
+import { method, asyncMethod } from './Module';
 
 export default class Bridge{
   name = 'Bridge';
@@ -26,8 +26,10 @@ export default class Bridge{
     this.remote = worker;
 
     this.modules.forEach((module, moduleId) => {
-      this.callRemoteVoid(0, 1, module.name, moduleId, module.constants, module.__methods);
+      this.callRemoteVoid(0, 1, moduleId, module.name, module.constants, module.__methods);
     })
+
+    return this.callRemotePromise(0, 2);
   }
 
   processMessage = e => {
@@ -49,10 +51,10 @@ export default class Bridge{
         const [resolve, reject] = v[3];
         // promise call
         Promise.resolve(module[name](...v[2]))
-          .then(() => {
-            this.invokeRemoteCallback(resolve);
-          }, () => {
-            this.invokeRemoteCallback(reject);
+          .then(arg => {
+            this.invokeRemoteCallback(resolve, arg);
+          }, arg => {
+            this.invokeRemoteCallback(reject, arg);
           });
       }
     });
@@ -67,7 +69,7 @@ export default class Bridge{
       const id = this.callbackId;
       this.callbacks[this.callbackId++] = resolve;
       this.callbacks[this.callbackId++] = reject;
-      this.remote.postMessage([[moduleId, methodId, args, id, id+1]]);
+      this.remote.postMessage([[moduleId, methodId, args, [id, id+1]]]);
     })
   }
 
@@ -97,8 +99,25 @@ export default class Bridge{
     }
     methods.forEach(([name, async], methodId) => {
       mod[name] = (...args) => {
-        this.remote.postMessage([moduleId, methodId, args]);
+        if (async) {
+          return this.callRemotePromise(moduleId, methodId, ...args);
+        } else {
+          this.callRemoteVoid(moduleId, methodId, ...args);
+        }
       };
     });
+  }
+
+  // Wait remote initial ready.
+  @asyncMethod
+  ping() {
+  }
+
+  addModule(module) {
+    const moduleId = this.modules.length;
+    this.modules.push(module);
+    if (this.remote) {
+      this.callRemoteVoid(0, 1, moduleId, module.name, module.constants, module.__methods);
+    }
   }
 }

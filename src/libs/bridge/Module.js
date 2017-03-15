@@ -31,3 +31,19 @@ export function asyncMethod(target, name, args) {
     })
   }
 }
+
+export function serverModule(target) {
+  const bridge = global.__bridgeServer;
+  if (!bridge) {
+    throw new Error('Export server module without __bridgeServer');
+  }
+  global.__bridgeServer.addModule(new target(bridge));
+}
+
+export function clientModule(target) {
+  const bridge = global.__bridgeClient;
+  if (!bridge) {
+    throw new Error('Export server module without __bridgeClient');
+  }
+  global.__bridgeServer.addModule(new target(bridge));
+}
