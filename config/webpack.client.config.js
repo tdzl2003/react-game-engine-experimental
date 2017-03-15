@@ -24,18 +24,19 @@ module.exports = {
       {
         test: /\.jsx?$/,
         include: [
-          path.resolve(__dirname, 'src'),
+          path.resolve(__dirname, '../src'),
         ],
         loader: 'babel-loader',
-        options: {
+        query: {
           presets: [
-            'latest',
+            'stage-2',
           ],
           plugins: [
             'syntax-jsx',
             ['transform-react-jsx', {
               pragma: 'create',
             }],
+            'transform-decorators-legacy',
           ],
         },
       },
@@ -44,6 +45,7 @@ module.exports = {
   resolve: {
     modules: [
       "node_modules",
+      path.resolve(__dirname, "../src/libs"),
     ],
     extensions: [".web.js", ".js", ".json", ".jsx", ".css"],
     alias: {},

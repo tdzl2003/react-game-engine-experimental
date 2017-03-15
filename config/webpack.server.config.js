@@ -22,7 +22,7 @@ module.exports = {
       {
         test: /\.jsx?$/,
         include: [
-          path.resolve(__dirname, 'src'),
+          path.resolve(__dirname, '../src'),
         ],
         loader: 'babel-loader',
         options: {

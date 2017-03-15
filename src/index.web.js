@@ -3,5 +3,10 @@
  */
 
 if (global.Worker) {
-  const w = new Worker('ww.bundle.js');
+  const w = new Worker('/ww.bundle.js');
+  require('bridge/server').install(w);
+} else {
+  require.ensure([], () => {
+    require('./client/main');
+  });
 }
