@@ -37,7 +37,8 @@ export function serverModule(target) {
   if (!bridge) {
     throw new Error('Export server module without __bridgeServer');
   }
-  global.__bridgeServer.addModule(new target(bridge));
+  target.instance = new target(bridge)
+  global.__bridgeServer.addModule(target.instance);
 }
 
 export function clientModule(target) {
@@ -45,5 +46,6 @@ export function clientModule(target) {
   if (!bridge) {
     throw new Error('Export server module without __bridgeClient');
   }
-  global.__bridgeServer.addModule(new target(bridge));
+  target.instance = new target(bridge)
+  global.__bridgeServer.addModule(target.instance);
 }

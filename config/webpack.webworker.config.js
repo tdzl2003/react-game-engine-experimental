@@ -34,7 +34,7 @@ module.exports = {
           plugins: [
             'syntax-jsx',
             ['transform-react-jsx', {
-              pragma: 'create',
+              pragma: 'createJSX',
             }],
             'transform-decorators-legacy',
           ],
