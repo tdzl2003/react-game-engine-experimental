@@ -45,7 +45,7 @@ module.exports = {
   resolve: {
     modules: [
       'node_modules',
-      path.resolve(__dirname, "../src/libs"),
+      path.resolve(__dirname, "../src/client/libs"),
     ],
     extensions: ['.web.js', '.js', '.json', '.jsx', '.css'],
     alias: {},

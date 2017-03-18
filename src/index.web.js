@@ -5,7 +5,7 @@
 import Bridge from 'bridge/Bridge';
 const bridge = global.__bridgeServer = new Bridge();
 
-require('./libs/nativeModules');
+require('./client/libs/nativeModules');
 
 if (global.Worker) {
   const w = new Worker('/ww.bundle.js');
