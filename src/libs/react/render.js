@@ -36,8 +36,8 @@ class UIEventEmitter extends Module {
     const backName = name.replace(/^[a-z]/, v=>`on${v.toUpperCase()}`);
     const {props} = mount.jsx;
     const callback = props && props[backName];
-    if (callback) {
-      callback();
+    if (callback && callback.call) {
+      callback.call(null);
     }
   }
 }

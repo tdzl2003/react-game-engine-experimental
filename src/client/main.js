@@ -2,20 +2,23 @@
  * Created by tdzl2003 on 2017/3/16.
  */
 
+import { observable } from 'mobx';
+import { observer } from 'mobx-react/custom';
 import { Component, renderRoot, createJSX } from 'react';
 
+@observer
 class Foo extends Component {
-  state = 0;
+  @observable
+  value = 0;
 
   onClick = () => {
-    this.state ++;
-    this.forceUpdate();
-  }
+    this.value ++;
+  };
 
   render() {
     return (
-      <div onClick={this.onClick}>
-        {this.state}
+      <div onClickCapture={this.onClick}>
+        {this.value}
       </div>
     );
   }

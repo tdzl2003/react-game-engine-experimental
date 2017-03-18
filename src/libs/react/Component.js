@@ -38,6 +38,7 @@ export default class Component {
 
   // methods:
   forceUpdate() {
+    console.log('Here');
     if (!this._willUpdate) {
       this._willUpdate = true;
       scheduleUpdate(this);
