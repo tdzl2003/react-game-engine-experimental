@@ -97,15 +97,17 @@ export default class Bridge{
     if (constants) {
       Object.assign(mod, constants);
     }
-    methods.forEach(([name, async], methodId) => {
-      mod[name] = (...args) => {
-        if (async) {
-          return this.callRemotePromise(moduleId, methodId, ...args);
-        } else {
-          this.callRemoteVoid(moduleId, methodId, ...args);
-        }
-      };
-    });
+    if (methods) {
+      methods.forEach(([name, async], methodId) => {
+        mod[name] = (...args) => {
+          if (async) {
+            return this.callRemotePromise(moduleId, methodId, ...args);
+          } else {
+            this.callRemoteVoid(moduleId, methodId, ...args);
+          }
+        };
+      });
+    }
   }
 
   // Wait remote initial ready.

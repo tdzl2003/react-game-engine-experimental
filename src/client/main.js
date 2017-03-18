@@ -5,21 +5,19 @@
 import { Component, renderRoot, createJSX } from 'react';
 
 class Foo extends Component {
-  id = 0;
+  state = 0;
 
-  componentWillMount() {
-    this.timer = setInterval(() => {
-      this.id ++;
-      this.forceUpdate();
-    }, 1000);
-  }
-
-  componentWillUnmount() {
-    clearInterval(this.timer);
+  onClick = () => {
+    this.state ++;
+    this.forceUpdate();
   }
 
   render() {
-    return this.id;
+    return (
+      <div onClick={this.onClick}>
+        {this.state}
+      </div>
+    );
   }
 }
 
@@ -38,6 +36,7 @@ function App() {
         <span key="fuck">
         Hello, fuck
         <Foo />
+        Hello, fuck
       </span>
     </div>
   );

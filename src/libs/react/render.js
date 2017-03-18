@@ -5,6 +5,7 @@ import { UIManager } from 'bridge/NativeModules';
 
 import { map } from './Children';
 import Component from './Component';
+import Module, {clientModule, method} from "../bridge/Module";
 
 const {
   createView,
@@ -20,6 +21,34 @@ const {
 
 let viewIdCounter = 0;
 
+const viewIdRecycler = [];
+const viewRegistry = [];
+
+@clientModule
+class UIEventEmitter extends Module {
+
+  @method
+  emit(id, name, ev) {
+    const mount = viewRegistry[id];
+    if (!mount/* || !mount.jsx*/) {
+      return;
+    }
+    const backName = name.replace(/^[a-z]/, v=>`on${v.toUpperCase()}`);
+    const {props} = mount.jsx;
+    const callback = props && props[backName];
+    if (callback) {
+      callback();
+    }
+  }
+}
+
+function allocViewId() {
+  if (viewIdCounter.length > 0) {
+    return viewIdCounter.pop();
+  }
+  return ++viewIdCounter;
+}
+
 const TextNode = {};
 const EmptyNode = {};
 
@@ -33,41 +62,78 @@ function getType(jsx) {
   return jsx.type;
 }
 
+const isEventReg = /^on([A-Z])/;
+
+function wrapEventName(key) {
+  return key.replace(isEventReg, (m, v) => v.toLowerCase());
+}
+
 function compareProps(newProps, oldProps, blacklist = EmptyNode) {
   const diff = { };
-  let dirty = false;
+  let haveDiff = false;
+
+  const events = {};
+  let haveEvents = false;
 
   if (newProps) {
     for (const key of Object.keys(newProps)) {
-      if (newProps[key] !== (oldProps && oldProps[key]) && !blacklist[key]) {
+      if (isEventReg.test(key)) {
+        if (!oldProps || !oldProps[key]) {
+          // added event listener.
+          events[wrapEventName(key)] = true;
+          haveEvents = true;
+        }
+      } else if (newProps[key] !== (oldProps && oldProps[key]) && !blacklist[key]) {
         diff[key] = newProps[key];
-        dirty = true;
+        haveDiff = true;
       }
     }
   }
   if (oldProps) {
     for (const key of Object.keys(oldProps)) {
-      if ((!newProps || !newProps[key]) && !blacklist[key]) {
+      if (isEventReg.test(key)) {
+        if (!newProps || !newProps[key]) {
+          // removed event listener.
+          events[wrapEventName(key)] = false;
+          haveEvents = true;
+        }
+      } else if ((!newProps || !newProps[key]) && !blacklist[key]) {
         diff[key] = null;
-        dirty = true;
+        haveDiff = true;
       }
     }
   }
-  return dirty ? diff : null;
+  if (haveEvents) {
+    haveDiff = true;
+    diff.events = events;
+  }
+  return haveDiff ? diff : null;
 }
 
 function blacklistProps(props, blacklist) {
   const ret = {};
-  let dirty = false;
+  let haveProp = false;
+  const events = {};
+  let haveEvents = false;
+
   if (props) {
     for (const key of Object.keys(props)) {
       if (!blacklist[key]) {
-        ret[key] = props[key];
-        dirty = true;
+        if (isEventReg.test(key)) {
+          events[wrapEventName(key)] = true;
+          haveEvents = true;
+        } else {
+          ret[key] = props[key];
+          haveProp = true;
+        }
       }
     }
   }
-  return dirty ? ret : null;
+  if (haveEvents) {
+    haveProp = true;
+    ret.events = events;
+  }
+  return haveProp ? ret : null;
 }
 
 function unmountAllChildren(container, children) {
@@ -212,13 +278,13 @@ function updateChildren(container, children, _newChildrenJSX) {
   let newChildrenJSX = _newChildrenJSX;
 
   if (Array.isArray(newChildrenJSX)) {
-    newChildrenJSX = newChildrenJSX.filter(v => v);
+    newChildrenJSX = newChildrenJSX.filter(v => (v!== false && v != null));
     if (newChildrenJSX.length <= 1) {
       newChildrenJSX = newChildrenJSX[0];
     }
   }
 
-  if (!newChildrenJSX) {
+  if (newChildrenJSX === false || newChildrenJSX == null) {
     // no children after update.
     if (children.length) {
       unmountAllChildren(container, children);
@@ -230,9 +296,14 @@ function updateChildren(container, children, _newChildrenJSX) {
       ret.mount(newChildrenJSX, container);
       children.push(ret);
     } else {
+      let lastMounted = null;
       for (const child of newChildrenJSX) {
         const ret = new ReactMount();
         ret.mount(child, container);
+        if (lastMounted) {
+          lastMounted.setBefore(ret.nativeId);
+        }
+        lastMounted = ret;
         children.push(ret);
       }
     }
@@ -288,7 +359,7 @@ export class ReactMount {
     if (nativeId !== undefined) {
       this.nativeId = nativeId;
     } else {
-      this.nativeId = ++ viewIdCounter;
+      this.nativeId = allocViewId();
     }
   }
 
@@ -314,8 +385,9 @@ export class ReactMount {
     if (type === TextNode) {
       createTextNode(this.nativeId, container, jsx, before);
     } else if (type === EmptyNode) {
-      createEmptyNode(this.nativeId, before);
+      createEmptyNode(this.nativeId, container, before);
     } else if (typeof(type) === 'string') {
+      viewRegistry[this.nativeId] = this;
       // dom
       createView(this.nativeId, container, jsx.type, before);
       const setProps = blacklistProps(jsx.props, {
@@ -326,9 +398,14 @@ export class ReactMount {
       if (setProps) {
         setViewProps(this.nativeId, setProps);
       }
+      let last = null;
       this.children = map(jsx.props.children, jsx => {
         const ret = new ReactMount();
         ret.mount(jsx, this.nativeId);
+        if (last) {
+          last.setBefore(ret.nativeId);
+        }
+        last = ret;
         return ret;
       });
     } else {
@@ -344,13 +421,20 @@ export class ReactMount {
     this.jsx = jsx;
   }
 
-  unmount() {
+  unmount(recycle = true) {
     const type = getType(this.jsx);
     if (typeof type === 'string') {
+      delete viewRegistry[this.nativeId];
       unmountAllChildren(this.nativeId, this.children);
     }
     if (typeof type !== 'function') {
-      destroyView(this.nativeId);
+      const p = destroyView(this.nativeId)
+      if (recycle) {
+        p.then(() => {
+          // 得到主线程回复才认为真正销毁成功，回收对应视图Id。
+          viewIdRecycler.push(this.nativeId);
+        })
+      }
     } else {
       // composite components
       this.instance.componentWillUnmount();
@@ -363,7 +447,7 @@ export class ReactMount {
   update(newJsx) {
     let type = getType(newJsx);
     if (type !== getType(this.jsx) || newJsx.key !== this.jsx.key) {
-      this.unmount();
+      this.unmount(false);
       this.mount(newJsx, this.container, this.before);
       return false;
     }
@@ -410,12 +494,20 @@ export class ReactMount {
 
   moveTo(container, before) {
     if (this.instance) {
-      this.instance.moveTo(container, before);
+      this.instance.mount.moveTo(container, before);
     } else {
       moveView(this.nativeId, container, before);
     }
 
     this.container = container;
+    this.before = before;
+  }
+
+  // 仅在尾部节点后面又插入节点的额情况下用
+  setBefore(before) {
+    if (this.instance) {
+      this.instance.mount.setBefore(before);
+    }
     this.before = before;
   }
 }

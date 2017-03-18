@@ -5,6 +5,7 @@
 export default class Module {
   constructor(bridge) {
     this.bridge = bridge;
+    this.name = this.constructor.name;
   }
 }
 
@@ -38,7 +39,7 @@ export function serverModule(target) {
     throw new Error('Export server module without __bridgeServer');
   }
   target.instance = new target(bridge)
-  global.__bridgeServer.addModule(target.instance);
+  bridge.addModule(target.instance);
 }
 
 export function clientModule(target) {
@@ -47,5 +48,5 @@ export function clientModule(target) {
     throw new Error('Export server module without __bridgeClient');
   }
   target.instance = new target(bridge)
-  global.__bridgeServer.addModule(target.instance);
+  bridge.addModule(target.instance);
 }

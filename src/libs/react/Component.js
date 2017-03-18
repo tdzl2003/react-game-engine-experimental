@@ -9,12 +9,14 @@ const scheduleUpdateComponents = [];
 let scheduleUpdateTimer = null;
 
 function scheduleUpdate(component) {
+  scheduleUpdateComponents.push(component);
   if (!scheduleUpdateTimer) {
     scheduleUpdateTimer = setTimeout(() => {
       scheduleUpdateTimer = null;
       const components = scheduleUpdateComponents.splice(0);
       for (const comp of components) {
         if (comp.mount) {
+          comp._willUpdate = false;
           comp.componentWillUpdate(comp.props);
           comp.mount.update(comp.render());
           comp.componentDidUpdate(comp.props);
@@ -28,16 +30,17 @@ export default class Component {
   mount = null;
   props = null;
 
+  _willUpdate = false;
+
   constructor(props, children) {
     this.props = props;
   }
 
   // methods:
   forceUpdate() {
-    if (this.mount) {
-      this.componentWillUpdate(this.props);
-      this.mount.update(this.render());
-      this.componentDidUpdate(this.props);
+    if (!this._willUpdate) {
+      this._willUpdate = true;
+      scheduleUpdate(this);
     }
   }
 

@@ -4,11 +4,23 @@
 
 import Module, { serverModule, method, asyncMethod } from '../bridge/Module';
 
+let postEvent = function (id, name, ev) {
+  // Should have remote event here.
+  const { remoteModules: {
+    UIEventEmitter,
+  }  } = global.__bridgeServer;
+
+  postEvent = function(id, name, ev) {
+    UIEventEmitter.emit(id, name);
+  };
+  return postEvent.call(this, id, name, ev);
+}
+
 @serverModule
 export default class UIManager extends Module {
-  name = "UIManager";
-
   viewRegistry = [];
+
+  eventRegistry = {};
 
   @method
   createView(id, container, tagName, before) {
@@ -64,7 +76,7 @@ export default class UIManager extends Module {
   }
 
   @method
-  createEmptyNode(id, container) {
+  createEmptyNode(id, container, before) {
     const el = __DEV__ ? document.createComment(`react-id=${id}`) : document.createComment();
     this.mountView(container, before, el);
     this.viewRegistry[id] = el;
@@ -74,24 +86,57 @@ export default class UIManager extends Module {
   setViewProps(id, props) {
     const view = this.viewRegistry[id];
     for (const key of Object.keys(props)) {
-      if (key === 'style') {
-        const value = props[key];
-        for (const name of Object.keys(value)) {
-          let styleValue = value[name];
-          if (typeof(styleValue) === 'number') {
-            styleValue = `${styleValue}px`;
+      const value = props[key];
+
+      switch (key) {
+        case 'style': {
+          for (const name of Object.keys(value)) {
+            let styleValue = value[name];
+            if (typeof(styleValue) === 'number') {
+              styleValue = `${styleValue}px`;
+            }
+            view.style[name] = styleValue;
           }
-          view.style[name] = styleValue;
+          break;
         }
-      } else if (props[key] === null) {
-        view.removeAttribute(key);
-      } else {
-        view.setAttribute(key, props[key]);
+        case 'events': {
+          for (const name of Object.keys(value)) {
+            const eventKey = `${id}.name`;
+            let eventName = name;
+            let useCapture = false;
+            if (eventName.substr(-7) === 'Capture') {
+              eventName = eventName.substr(0, eventName.length - 7);
+              useCapture = true;
+            }
+
+            if (value[name]) {
+              // add listener.
+              const f = ev => postEvent.call(view, id, name, ev);
+              this.eventRegistry[eventKey] = f;
+              view.addEventListener(eventName.toLowerCase(), f, useCapture);
+            } else {
+              // remove listener
+              const f = this.eventRegistry[eventKey];
+              delete this.eventRegistry[eventKey];
+              view.removeEventListener(eventName.toLowerCase(), f);
+            }
+          }
+          break;
+        }
+        default:{
+          if (value === null) {
+            view.removeAttribute(key);
+          } else {
+            view.setAttribute(key, value);
+          }
+          break;
+        }
       }
+
     }
   }
 
-  @method
+  @asyncMethod
   destroyView(id) {
     const view = this.viewRegistry[id];
     view.parentNode.removeChild(view);

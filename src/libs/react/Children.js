@@ -3,7 +3,7 @@
  */
 
 export function map(children, func) {
-  if (!children) {
+  if (children == null || children === false) {
     return [];
   }
   if (Array.isArray(children)) {
@@ -13,7 +13,7 @@ export function map(children, func) {
 }
 
 export function count(children) {
-  if (!children) {
+  if (children == null || children === false) {
     return 0;
   }
   if (Array.isArray(children)) {
