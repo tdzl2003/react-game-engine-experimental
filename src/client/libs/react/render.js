@@ -28,7 +28,7 @@ const viewRegistry = [];
 class UIEventEmitter extends Module {
 
   @method
-  emit(id, name, ev) {
+  emit(id, name, ...args) {
     const mount = viewRegistry[id];
     if (!mount/* || !mount.jsx*/) {
       return;
@@ -37,7 +37,7 @@ class UIEventEmitter extends Module {
     const {props} = mount.jsx;
     const callback = props && props[backName];
     if (callback && callback.call) {
-      callback.call(null);
+      callback.apply(null, args);
     }
   }
 }
@@ -428,7 +428,7 @@ export class ReactMount {
       unmountAllChildren(this.nativeId, this.children);
     }
     if (typeof type !== 'function') {
-      const p = destroyView(this.nativeId)
+      const p = destroyView(this.nativeId, this.container);
       if (recycle) {
         p.then(() => {
           // 得到主线程回复才认为真正销毁成功，回收对应视图Id。

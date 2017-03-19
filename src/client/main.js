@@ -6,41 +6,41 @@ import { observable } from 'mobx';
 import { observer } from 'mobx-react/custom';
 import { Component, renderRoot, createJSX } from 'react';
 
-@observer
-class Foo extends Component {
-  @observable
-  value = 0;
-
-  onClick = () => {
-    this.value ++;
-  };
-
-  render() {
-    return (
-      <div onClickCapture={this.onClick}>
-        {this.value}
-      </div>
-    );
-  }
-}
-
 function App() {
   return (
-    <div
-      style={{
-        width: 100,
-        height: 100,
-        border: 'solid 1px',
-      }}
-    >
-      <span key="world">
-        Hello, world
-      </span>
-        <span key="fuck">
-        Hello, fuck
-        <Foo />
-        Hello, fuck
-      </span>
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    }}>
+      <gl-surface
+        style={{
+          width: '100%',
+          height: '100%',
+        }}
+        onSurfaceCreated={(ev) => {console.log('onSurfaceCreated', ev)}}
+        onSizeChanged={(ev) => {console.log('onSizeChanged', ev)}}
+      >
+        {/*<gl-2dnode x={100} y={100} rotation={0.4}>*/}
+          {/*<gl-2dimage source={require('./sprite.img')} />*/}
+          {/*<gl-2dnode x={100} y={100} rotation={0.4}>*/}
+            {/*<gl-2dtext>*/}
+              {/*角色名*/}
+            {/*</gl-2dtext>*/}
+          {/*</gl-2dnode>*/}
+        {/*</gl-2dnode>*/}
+      </gl-surface>
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+      }}>
+
+      </div>
     </div>
   );
 }

@@ -40,6 +40,10 @@ module.exports = {
           ],
         },
       },
+      {
+        test: /.shader$/,
+        loader: 'raw-loader',
+      },
     ],
   },
   resolve: {
