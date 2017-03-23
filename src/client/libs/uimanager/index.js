@@ -98,8 +98,6 @@ export class NativeComponent {
         }
       }
     }
-
-    console.log(this);
   }
 
   mount(parentNode, before) {

@@ -24,16 +24,8 @@ function App() {
         onSizeChanged={(ev) => {console.log('onSizeChanged', ev)}}
       >
         <gl-2d-rect x={-0.5} y={-0.5} w={1} h={1} r={1}/>
-        <gl-2d-rect x={-0.25} y={-0.75} w={0.5} h={1.5} g={1}/>
-        <gl-2d-rect x={-0.75} y={-0.25} w={1.5} h={0.5} r={1} b={1}/>
-        {/*<gl-2dnode x={100} y={100} rotation={0.4}>*/}
-          {/*<gl-2dimage source={require('./sprite.img')} />*/}
-          {/*<gl-2dnode x={100} y={100} rotation={0.4}>*/}
-            {/*<gl-2dtext>*/}
-              {/*角色名*/}
-            {/*</gl-2dtext>*/}
-          {/*</gl-2dnode>*/}
-        {/*</gl-2dnode>*/}
+        <gl-2d-rect x={-0.25} y={-0.75} w={0.5} h={1.5} g={1} a={0.3}/>
+        <gl-2d-rect x={-0.75} y={-0.25} w={1.5} h={0.5} r={1} b={1} a={0.6}/>
       </gl-surface>
       <div style={{
         position: 'absolute',
