@@ -64,9 +64,9 @@ export default class BatchDraw2D {
       console.log('CAPS: ', JSON.stringify(this.caps));
     }
 
-    this.maxVertexBufferSize = Math.max(4096, this.caps.maxElementsVerticies);
+    this.maxVertexBufferSize = Math.min(4096, this.caps.maxElementsVerticies);
     this.vertexBufferData = new Float32Array(this.maxVertexBufferSize * MAX_VERTEX_ELEMENT_SIZE);
-    this.maxIndeciesBufferSize = Math.max(8192, this.caps.maxElementsIndecies);
+    this.maxIndeciesBufferSize = Math.min(8192, this.caps.maxElementsIndecies);
     this.indeciesBufferData = new Uint16Array(this.maxIndeciesBufferSize);
 
     this.vertexBuffer = gl.createBuffer();
