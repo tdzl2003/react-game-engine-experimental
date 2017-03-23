@@ -6,6 +6,10 @@ import BatchDraw2D from "./BatchDraw2D";
 import AssetManager from "./AssetsManager";
 import Effect from "./Effect";
 
+class GLNode extends NativeComponent {
+
+}
+
 @nativeComponent('gl-surface')
 class GLSurface extends NativeComponent {
   renderTimer = null;
@@ -36,9 +40,10 @@ class GLSurface extends NativeComponent {
   initGL() {
     const canvas = this.el;
     const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    const ratio = window.devicePixelRatio || 1;
 
-    const width = this.el.width = this.el.offsetWidth;
-    const height = this.el.height = this.el.offsetHeight;
+    const width = this.el.width = (this.el.offsetWidth * ratio) | 0;
+    const height = this.el.height = (this.el.offsetHeight * ratio) | 0;
 
     this.sendEvent('surfaceCreated', {
       width,
@@ -62,7 +67,10 @@ class GLSurface extends NativeComponent {
   }
 
   renderGL(gl) {
-    const {offsetWidth:width, offsetHeight:height} = this.el;
+    const {offsetWidth, offsetHeight} = this.el;
+    const ratio = window.devicePixelRatio || 1;
+    const width = (offsetWidth * ratio) | 0;
+    const height = (offsetHeight * ratio) | 0;
     if (width !== this.el.width || height !== this.el.height) {
       this.el.width = width;
       this.el.height = height;

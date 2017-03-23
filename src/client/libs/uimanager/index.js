@@ -148,7 +148,7 @@ export class NativeComponent {
     }  } = global.__bridgeServer;
     const v = this.events[eventName];
     if (v) {
-      UIEventEmitter.emit(id, eventName, ...args);
+      UIEventEmitter.emit(this.reactId, eventName, ...args);
     }
   }
 
@@ -185,15 +185,17 @@ export default class UIManager extends Module {
   eventRegistry = {};
 
   @method
-  createView(id, container, tagName, before) {
+  createView(id, container, initialProps, tagName, before) {
     const Clazz = this.nativeComponents[tagName];
     if (Clazz) {
       const el = new Clazz(id);
       this.viewRegistry[id] = el;
+      el.setViewProps(initialProps);
       this.mountView(container, before, el);
       return;
     }
     const el = document.createElement(tagName);
+    updateProps(el, initialProps);
     this.mountView(container, before, el);
     this.viewRegistry[id] = el;
 

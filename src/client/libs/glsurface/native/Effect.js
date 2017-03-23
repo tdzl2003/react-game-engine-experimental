@@ -26,7 +26,6 @@ export default class Effect extends AssetType {
     for (let i = 0; i < this.streams.length; i++) {
       const stream = this.streams[i];
       if (stream) {
-        console.log(i, stream.name);
         gl.bindAttribLocation(program, i, stream.name);
       }
     }

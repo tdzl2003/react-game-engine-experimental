@@ -389,15 +389,15 @@ export class ReactMount {
     } else if (typeof(type) === 'string') {
       viewRegistry[this.nativeId] = this;
       // dom
-      createView(this.nativeId, container, jsx.type, before);
       const setProps = blacklistProps(jsx.props, {
         children: true,
         ref: true,
         key: true,
       });
-      if (setProps) {
-        setViewProps(this.nativeId, setProps);
-      }
+      createView(this.nativeId, container, setProps, jsx.type, before);
+      // if (setProps) {
+      //   setViewProps(this.nativeId, setProps);
+      // }
       let last = null;
       this.children = map(jsx.props.children, jsx => {
         const ret = new ReactMount();
