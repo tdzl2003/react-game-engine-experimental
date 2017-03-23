@@ -120,6 +120,9 @@ export default class BatchDraw2D {
       return;
     }
     const { gl } = this;
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     // commit buffer data
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, this.vertexBufferData, gl.DYNAMIC_DRAW);

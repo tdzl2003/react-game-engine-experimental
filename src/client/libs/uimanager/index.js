@@ -64,18 +64,61 @@ function updateProps(view, props) {
         break;
       }
     }
-
   }
-
 }
 
 export class NativeComponent {
   reactId = null;
-  el = null;
   events = {};
 
   constructor(id) {
     this.reactId = id;
+  }
+
+  sendEvent(eventName, ...args) {
+    const { remoteModules: {
+      UIEventEmitter,
+    }  } = global.__bridgeServer;
+    const v = this.events[eventName];
+    if (v) {
+      UIEventEmitter.emit(this.reactId, eventName, ...args);
+    }
+  }
+
+  setViewProps(props) {
+    const { propFields, defaultProps } = this.constructor;
+    if (propFields) {
+      for (const k in props) {
+        if (propFields[k]) {
+          if (props[k] === null) {
+            this[k] = defaultProps[k];
+          } else {
+            this[k] = props[k];
+          }
+        }
+      }
+    }
+
+    console.log(this);
+  }
+
+  mount(parentNode, before) {
+  }
+
+  unmount() {
+
+  }
+
+  setAttribute(key, value) {
+  }
+}
+
+export class NativeElementComponent extends NativeComponent {
+  el = null;
+
+  constructor(id) {
+    super(id);
+
     this.el = this.createElement();
     if (__DEV__) {
       this.el.setAttribute('data-react-id', this.reactId);
@@ -91,16 +134,6 @@ export class NativeComponent {
 
   appendChild(el) {
     this.el.appendChild(el);
-  }
-
-  updateStyle(style) {
-    for (const name of Object.keys(style)) {
-      let styleValue = style[name];
-      if (typeof(styleValue) === 'number') {
-        styleValue = `${styleValue}px`;
-      }
-      this.el.style[name] = styleValue;
-    }
   }
 
   setViewProps(props) {
@@ -134,22 +167,22 @@ export class NativeComponent {
     }
   }
 
+  updateStyle(style) {
+    for (const name of Object.keys(style)) {
+      let styleValue = style[name];
+      if (typeof(styleValue) === 'number') {
+        styleValue = `${styleValue}px`;
+      }
+      this.el.style[name] = styleValue;
+    }
+  }
+
   setAttribute(key, value) {
     this.el.setAttribute(key, value);
   }
 
   removeAttribute(key) {
     this.el.removeAttribute(key);
-  }
-
-  sendEvent(eventName, ...args) {
-    const { remoteModules: {
-      UIEventEmitter,
-    }  } = global.__bridgeServer;
-    const v = this.events[eventName];
-    if (v) {
-      UIEventEmitter.emit(this.reactId, eventName, ...args);
-    }
   }
 
   mount(parentNode, before) {
@@ -162,7 +195,6 @@ export class NativeComponent {
 
   unmount() {
     this.el.parentNode.removeChild(this.el);
-    this.reactId = null;
   }
 
   removeChild(el) {
@@ -174,6 +206,31 @@ export function nativeComponent(name) {
   return target => {
     UIManager.instance.nativeComponents[name] = target;
   };
+}
+
+export function prop(target, name, args) {
+  const defaultValue = args.value || (args.initializer && args.initializer());
+  const clazz = target.constructor;
+
+  if (clazz.hasOwnProperty('propFields')){
+    clazz.propFields[name] = true;
+  } else {
+    Object.defineProperty(clazz, 'propFields', {
+      configurable: true,
+      enumerable: false,
+      value: {[name]: true},
+    })
+  }
+
+  if (clazz.hasOwnProperty('defaultProps')){
+    clazz.defaultProps[name] = defaultValue;
+  } else {
+    Object.defineProperty(clazz, 'defaultProps', {
+      configurable: true,
+      enumerable: false,
+      value: {[name]: defaultValue},
+    })
+  }
 }
 
 @serverModule

@@ -1,18 +1,124 @@
 /**
  * Created by tdzl2003 on 2017/3/19.
  */
-import {nativeComponent, NativeComponent} from "../../uimanager/index";
+import {prop, nativeComponent, NativeComponent, NativeElementComponent} from "../../uimanager/index";
 import BatchDraw2D from "./BatchDraw2D";
 import AssetManager from "./AssetsManager";
 import Effect from "./Effect";
 
 class GLNode extends NativeComponent {
+  prevSibling = null;
+  nextSibling = null;
 
+  parentNode = null;
+
+  mount(parentNode, before) {
+    if (__DEV__) {
+      if (this.parentNode) {
+        console.error('Mount before unmounted.');
+      }
+    }
+    this.parentNode = parentNode;
+    parentNode.insertBefore(this, before);
+  }
+
+  unmount() {
+    this.parentNode.removeChild(this);
+  }
+
+  renderGL(gl) {
+    // Override me.
+  }
+}
+
+class GLContainer {
+  firstChild = null;
+  lastChild = null;
+
+  appendChild(child) {
+    this.insertBefore(child, null);
+  }
+
+  insertBefore(child, before) {
+    if (__DEV__) {
+      if (before && before.parentNode !== this) {
+        console.error('Before is not child of this.');
+      }
+    }
+    const after = before ? before.prevSibling : this.lastChild;
+    if (after) {
+      after.nextSibling = child;
+      child.prevSibling = after;
+    } else {
+      this.firstChild = child;
+    }
+    if (before) {
+      before.prevSibling = child;
+      child.nextSibling = before;
+    } else {
+      this.lastChild = child;
+    }
+
+    child.parentNode = this;
+  }
+
+  removeChild(child) {
+    if (__DEV__) {
+      if (child.parentNode !== this) {
+        console.error('removeChild target is not child of this.');
+      }
+    }
+
+    const { nextSibling, prevSibling } = child;
+    if (nextSibling) {
+      nextSibling.prevSibling = child.prevSibling;
+      child.nextSibling = null;
+    } else {
+      this.lastChild = prevSibling;
+    }
+
+    if (prevSibling) {
+      prevSibling.nextSibling = child.nextSibling;
+      child.prevSibling = null;
+    } else {
+      this.firstChild = nextSibling;
+    }
+
+    child.parentNode = null;
+  }
+
+  renderGL(gl) {
+    for (let l = this.firstChild; l; l = l.nextSibling) {
+      l.renderGL(gl);
+    }
+  }
+}
+
+@nativeComponent('gl-2d-rect')
+class GLRect extends GLNode {
+  @prop x = 0;
+  @prop y = 0;
+  @prop w = 0;
+  @prop h = 0;
+
+  @prop r = 0;
+  @prop g = 0;
+  @prop b = 0;
+  @prop a = 1;
+
+  renderGL(gl) {
+    gl.painter2d.drawRect(
+      this.x, this.y, this.w, this.h,
+      this.r, this.g, this.b, this.a,
+    );
+  }
 }
 
 @nativeComponent('gl-surface')
-class GLSurface extends NativeComponent {
+class GLSurface extends NativeElementComponent {
   renderTimer = null;
+
+  container = new GLContainer();
 
   createElement() {
     return document.createElement('canvas');
@@ -85,8 +191,20 @@ class GLSurface extends NativeComponent {
       gl.clear(gl.COLOR_BUFFER_BIT);
     }
 
-    gl.painter2d.drawRect(-0.5, -0.5, 1, 1, 1, 0, 0, 1);
+    this.container.renderGL(gl);
 
     gl.painter2d.flush();
+  }
+
+  appendChild(child) {
+    this.container.appendChild(child);
+  }
+
+  insertBefore(el, before) {
+    this.container.insertBefore(el, before);
+  }
+
+  removeChild(child) {
+    this.container.removeChild(child);
   }
 }
