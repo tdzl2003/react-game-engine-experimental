@@ -5,6 +5,7 @@ import {prop, nativeComponent, NativeComponent, NativeElementComponent} from "..
 import BatchDraw2D from "./BatchDraw2D";
 import AssetManager from "./AssetsManager";
 import Effect from "./Effect";
+import MatrixStack, {translate2D, scale2D, rotate2D} from '../common/matrix';
 
 class GLNode extends NativeComponent {
   prevSibling = null;
@@ -31,7 +32,7 @@ class GLNode extends NativeComponent {
   }
 }
 
-class GLContainer {
+class GLContainer extends GLNode {
   firstChild = null;
   lastChild = null;
 
@@ -108,9 +109,47 @@ class GLRect extends GLNode {
 
   renderGL(gl) {
     gl.painter2d.drawRect(
+      gl,
       this.x, this.y, this.w, this.h,
       this.r, this.g, this.b, this.a,
     );
+  }
+}
+
+@nativeComponent('gl-2d-layer')
+class GLLayer extends GLContainer {
+  // defaults to -1 to 1
+  @prop x = 0;
+  @prop y = 0;
+  @prop width = 2;
+  @prop height = 2;
+
+  renderGL(gl) {
+    gl.matrixStack.pushOrtho2D(this.width, this.height, this.x, this.y);
+    super.renderGL(gl);
+    gl.matrixStack.pop();
+  }
+}
+
+@nativeComponent('gl-2d-node')
+class GLNode2D extends GLContainer {
+  // defaults to -1 to 1
+  @prop x = 0;
+  @prop y = 0;
+  @prop rotate = 0;
+  @prop scaleX = 1;
+  @prop scaleY = 1;
+
+  renderGL(gl) {
+    const { matrixStack } = gl;
+    matrixStack.push();
+    const { top } = matrixStack;
+    scale2D(top, this.scaleX, this.scaleY);
+    rotate2D(top, this.rotate);
+    translate2D(top, this.x, this.y);
+
+    super.renderGL(gl);
+    matrixStack.pop();
   }
 }
 
@@ -148,12 +187,15 @@ class GLSurface extends NativeElementComponent {
     const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     const ratio = window.devicePixelRatio || 1;
 
-    const width = this.el.width = (this.el.offsetWidth * ratio) | 0;
-    const height = this.el.height = (this.el.offsetHeight * ratio) | 0;
+    const {offsetWidth, offsetHeight} = this.el;
+
+    const width = this.el.width = (offsetWidth * ratio) | 0;
+    const height = this.el.height = (offsetHeight * ratio) | 0;
 
     this.sendEvent('surfaceCreated', {
-      width,
-      height,
+      width: offsetWidth,
+      height: offsetHeight,
+      ratio,
     });
 
     if (__DEV__) {
@@ -169,6 +211,7 @@ class GLSurface extends NativeElementComponent {
 
     gl.effectManager = new AssetManager(Effect);
 
+    gl.matrixStack = new MatrixStack();
     gl.painter2d = new BatchDraw2D(gl);
   }
 
@@ -181,8 +224,9 @@ class GLSurface extends NativeElementComponent {
       this.el.width = width;
       this.el.height = height;
       this.sendEvent('sizeChanged', {
-        width,
-        height,
+        width: offsetWidth,
+        height: offsetHeight,
+        ratio,
       });
     }
     if (__DEV__) {
@@ -193,7 +237,7 @@ class GLSurface extends NativeElementComponent {
 
     this.container.renderGL(gl);
 
-    gl.painter2d.flush();
+    gl.painter2d.flush(gl);
   }
 
   appendChild(child) {

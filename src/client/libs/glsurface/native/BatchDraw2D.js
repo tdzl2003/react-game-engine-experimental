@@ -55,7 +55,6 @@ export default class BatchDraw2D {
   baseEffect = null;
 
   constructor(gl) {
-    this.gl = gl;
     for (const key of Object.keys(CAPACITY_NAMES)) {
       this.caps[key] = gl.getParameter(gl[CAPACITY_NAMES[key]]);
     }
@@ -75,8 +74,8 @@ export default class BatchDraw2D {
     this.baseEffect = gl.effectManager.obtain(gl, 'base');
   }
 
-  drawRect(x, y, w, h, r = 0, g = 0, b = 0, a = 1) {
-    this.prepare(4, 6, gl.TRIANGLES, 2, this.baseEffect);
+  drawRect(gl, x, y, w, h, r = 0, g = 0, b = 0, a = 1) {
+    this.prepare(gl, 4, 6, gl.TRIANGLES, 2, this.baseEffect);
     const baseId = this.vertexBufferCount;
     let base = baseId * 6;
     let idxBase = this.indeciesBufferCount;
@@ -87,8 +86,9 @@ export default class BatchDraw2D {
     const ys = [y, y, y + h, y + h];
 
     for (let i = 0; i < 4; i++) {
-      this.vertexBufferData[base++] = xs[i];
-      this.vertexBufferData[base++] = ys[i];
+      const [rx, ry] = gl.matrixStack.transpose2D(xs[i], ys[i]);
+      this.vertexBufferData[base++] = rx;
+      this.vertexBufferData[base++] = ry;
       this.vertexBufferData[base++] = r;
       this.vertexBufferData[base++] = g;
       this.vertexBufferData[base++] = b;
@@ -103,23 +103,22 @@ export default class BatchDraw2D {
     this.indeciesBufferData[idxBase++] = baseId + 3;
   }
 
-  prepare(eleCnt, idxCount, mode, format, effect, texture = null) {
+  prepare(gl, eleCnt, idxCount, mode, format, effect, texture = null) {
     if (mode !== this.mode || format !== this.format || effect !== this.effect || texture !== this.texture) {
-      this.flush();
+      this.flush(gl);
       this.mode = mode;
       this.format = format;
       this.effect = effect;
       this.texture = texture;
     } else if (eleCnt + this.vertexBufferCount > this.maxVertexBufferSize || idxCount + this.indeciesBufferCount > this.maxIndeciesBufferSize) {
-      this.flush();
+      this.flush(gl);
     }
   }
 
-  flush() {
+  flush(gl) {
     if (this.indeciesBufferCount === 0) {
       return;
     }
-    const { gl } = this;
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);

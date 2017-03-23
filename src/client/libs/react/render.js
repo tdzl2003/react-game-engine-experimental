@@ -78,7 +78,7 @@ function compareProps(newProps, oldProps, blacklist = EmptyNode) {
   if (newProps) {
     for (const key of Object.keys(newProps)) {
       if (isEventReg.test(key)) {
-        if (!oldProps || !oldProps[key]) {
+        if (!oldProps || oldProps[key] == null) {
           // added event listener.
           events[wrapEventName(key)] = true;
           haveEvents = true;
@@ -92,12 +92,12 @@ function compareProps(newProps, oldProps, blacklist = EmptyNode) {
   if (oldProps) {
     for (const key of Object.keys(oldProps)) {
       if (isEventReg.test(key)) {
-        if (!newProps || !newProps[key]) {
+        if (!newProps || newProps[key] == null) {
           // removed event listener.
           events[wrapEventName(key)] = false;
           haveEvents = true;
         }
-      } else if ((!newProps || !newProps[key]) && !blacklist[key]) {
+      } else if ((!newProps || newProps[key] == null) && !blacklist[key]) {
         diff[key] = null;
         haveDiff = true;
       }
