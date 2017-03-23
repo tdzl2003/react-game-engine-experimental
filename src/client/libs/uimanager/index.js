@@ -148,7 +148,7 @@ export class NativeComponent {
     }  } = global.__bridgeServer;
     const v = this.events[eventName];
     if (v) {
-      UIEventEmitter.emit(id, name, ...args);
+      UIEventEmitter.emit(id, eventName, ...args);
     }
   }
 

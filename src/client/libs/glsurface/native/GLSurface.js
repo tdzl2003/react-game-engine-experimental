@@ -37,8 +37,13 @@ class GLSurface extends NativeComponent {
     const canvas = this.el;
     const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 
-    this.el.width = this.el.offsetWidth;
-    this.el.height = this.el.offsetHeight;
+    const width = this.el.width = this.el.offsetWidth;
+    const height = this.el.height = this.el.offsetHeight;
+
+    this.sendEvent('surfaceCreated', {
+      width,
+      height,
+    });
 
     if (__DEV__) {
       global.gl = gl;
@@ -61,6 +66,10 @@ class GLSurface extends NativeComponent {
     if (width !== this.el.width || height !== this.el.height) {
       this.el.width = width;
       this.el.height = height;
+      this.sendEvent('sizeChanged', {
+        width,
+        height,
+      });
     }
     if (__DEV__) {
       gl.viewport(0, 0, width, height);
