@@ -6,6 +6,7 @@ import BatchDraw2D from "./BatchDraw2D";
 import AssetManager from "./AssetsManager";
 import Effect from "./Effect";
 import MatrixStack, {translate2D, scale2D, rotate2D} from '../common/matrix';
+import {ImageTexture} from './Texture';
 
 class GLNode extends NativeComponent {
   prevSibling = null;
@@ -102,9 +103,9 @@ class GLRect extends GLNode {
   @prop w = 0;
   @prop h = 0;
 
-  @prop r = 0;
-  @prop g = 0;
-  @prop b = 0;
+  @prop r = 1;
+  @prop g = 1;
+  @prop b = 1;
   @prop a = 1;
 
   renderGL(gl) {
@@ -115,6 +116,52 @@ class GLRect extends GLNode {
     );
   }
 }
+
+@nativeComponent('gl-2d-image')
+class GLImage extends GLRect {
+  texture = null;
+  uri = null;
+
+  @prop tx = 0;
+  @prop ty = 0;
+  @prop tw = 1;
+  @prop th = 1;
+
+  @prop
+  set src(value) {
+    this.releaseTexture();
+    this.uri = value;
+  }
+
+  unmount() {
+    this.releaseTexture();
+  }
+
+  releaseTexture() {
+    if (this.texture) {
+      this.texture.release();
+      this.texture = null;
+    }
+  }
+
+  renderGL(gl) {
+    if (!this.texture && this.uri) {
+      this.texture = gl.imageTextureManager.obtain(gl, this.uri);
+    }
+    if (this.texture.loaded) {
+      gl.painter2d.drawTexture(
+        gl,
+        this.texture.texture,
+        this.x, this.y, this.w, this.h,
+        this.tx, this.ty, this.tw, this.th,
+        this.r, this.g, this.b, this.a,
+      );
+    }
+    // super.renderGL(gl);
+  }
+}
+
+global.GLImage = GLImage;
 
 @nativeComponent('gl-2d-layer')
 class GLLayer extends GLContainer {
@@ -155,6 +202,8 @@ class GLNode2D extends GLContainer {
 
 @nativeComponent('gl-surface')
 class GLSurface extends NativeElementComponent {
+  gl;
+
   renderTimer = null;
 
   container = new GLContainer();
@@ -173,6 +222,12 @@ class GLSurface extends NativeElementComponent {
       // Remounted, size may changed.
       // this.render(this.gl);
     }
+  }
+
+  unmount() {
+    super.unmount();
+    this.gl.destroyed = true;
+    this.gl = null;
   }
 
   performRender = () => {
@@ -210,6 +265,7 @@ class GLSurface extends NativeElementComponent {
     this.gl = gl;
 
     gl.effectManager = new AssetManager(Effect);
+    gl.imageTextureManager = new AssetManager(ImageTexture);
 
     gl.matrixStack = new MatrixStack();
     gl.painter2d = new BatchDraw2D(gl);

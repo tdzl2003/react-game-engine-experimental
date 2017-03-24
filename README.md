@@ -108,3 +108,8 @@ class Game extends Component {
     }
 }
 ```
+
+### 资源版权说明
+
+本工程图片和音频素材资源均为来自[66rpg](http://rm.66rpg.com/)的免费资源，若不慎侵犯版权，
+请致信[dy@tdzl.cn](mailto:dy@tdzl.cn)或在Github提起issue说明，我将及时处理。

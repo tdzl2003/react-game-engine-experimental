@@ -40,6 +40,10 @@ module.exports = {
           ],
         },
       },
+      {
+        test: /\.png|\.jpg/,
+        loader: 'file-loader',
+      },
     ],
   },
   resolve: {

@@ -216,7 +216,10 @@ export function prop(target, name, args) {
     Object.defineProperty(clazz, 'propFields', {
       configurable: true,
       enumerable: false,
-      value: {[name]: true},
+      value: {
+        ...clazz.__proto__.propFields,
+        [name]: true
+      },
     })
   }
 
@@ -226,7 +229,10 @@ export function prop(target, name, args) {
     Object.defineProperty(clazz, 'defaultProps', {
       configurable: true,
       enumerable: false,
-      value: {[name]: defaultValue},
+      value: {
+        ...clazz.__proto__.defaultProps,
+        [name]: defaultValue
+      },
     })
   }
 }

@@ -7,6 +7,8 @@ export default class Effect extends AssetType {
   streams;
   passes;
 
+  params = {};
+
   constructor(gl, key) {
     super(gl);
 
@@ -14,10 +16,10 @@ export default class Effect extends AssetType {
       key = require('../../../assets/effects/' + key + '.effect.js');
     }
     this.streams = key.streams;
-    this.passes = key.passes.map(v => this.loadPass(v));
+    this.passes = key.passes.map((v, i) => this.loadPass(v, i));
   }
 
-  loadPass(pass) {
+  loadPass(pass, passId) {
     const vs = this.loadShader(gl.VERTEX_SHADER, pass.vs);
     const fs = this.loadShader(gl.FRAGMENT_SHADER, pass.fs);
     const program = gl.createProgram();
@@ -34,6 +36,15 @@ export default class Effect extends AssetType {
 
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       console.error('Unable to initialize the shader program: ' + gl.getProgramInfoLog(program));
+    }
+
+    const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+
+    for (let i = 0; i < uniformCount; i++) {
+      const info = gl.getActiveUniform(program, i);
+      const loc = gl.getUniformLocation(program, info.name);
+      this.params[info.name] = this.params[info.name] || [];
+      this.params[info.name][passId] = loc;
     }
 
     // bind streams.
@@ -73,7 +84,7 @@ export default class Effect extends AssetType {
 
   drawElements(mode, count, type, offset) {
     if (gl.lastUsedEffect && gl.lastUsedEffect !== this) {
-      for (let i = this.streams.length; i < gl.lastUsedEffect.stream.length; i++) {
+      for (let i = this.streams.length; i < gl.lastUsedEffect.streams.length; i++) {
         gl.disableVertexAttribArray(i);
       }
     }
@@ -82,5 +93,18 @@ export default class Effect extends AssetType {
       gl.drawElements(mode, count, type, offset);
     }
     gl.lastUsedEffect = this;
+  }
+
+  setParameter1i(gl, name, value) {
+    const positions = this.params[name];
+    if (positions) {
+      for (let i = 0; i < this.passes.length; i++) {
+        if (positions[i] !== undefined) {
+          const pass = this.passes[i];
+          gl.useProgram(pass);
+          gl.uniform1i(positions[i], value);
+        }
+      }
+    }
   }
 };
