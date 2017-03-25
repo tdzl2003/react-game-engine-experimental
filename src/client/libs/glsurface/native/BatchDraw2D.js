@@ -7,6 +7,11 @@ const CAPACITY_NAMES = {
   maxElementsVerticies: 'MAX_ELEMENTS_VERTICES',
 };
 
+const DEFAULT_CAPACITY = {
+  maxElementsIndecies: 8192,
+  maxElementsVerticies: 4096,
+};
+
 const VERTEX_ATTRIBUTE_LOCATION = {
   VERTEX: 0,
   TEXCOORD: 1,
@@ -57,7 +62,7 @@ export default class BatchDraw2D {
 
   constructor(gl) {
     for (const key of Object.keys(CAPACITY_NAMES)) {
-      this.caps[key] = gl.getParameter(gl[CAPACITY_NAMES[key]]);
+      this.caps[key] = gl.getParameter(gl[CAPACITY_NAMES[key]]) || DEFAULT_CAPACITY[key];
     }
 
     if (__DEV__) {
