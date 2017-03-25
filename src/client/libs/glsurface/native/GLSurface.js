@@ -8,7 +8,7 @@ import Effect from "./Effect";
 import MatrixStack, {translate2D, scale2D, rotate2D} from '../common/matrix';
 import {ImageTexture} from './Texture';
 
-class GLNode extends NativeComponent {
+export class GLNode extends NativeComponent {
   prevSibling = null;
   nextSibling = null;
 
@@ -33,7 +33,7 @@ class GLNode extends NativeComponent {
   }
 }
 
-class GLContainer extends GLNode {
+export class GLContainer extends GLNode {
   firstChild = null;
   lastChild = null;
 
@@ -97,7 +97,7 @@ class GLContainer extends GLNode {
 }
 
 @nativeComponent('gl-2d-rect')
-class GLRect extends GLNode {
+export class GLRect extends GLNode {
   @prop x = 0;
   @prop y = 0;
   @prop w = 0;
@@ -118,7 +118,7 @@ class GLRect extends GLNode {
 }
 
 @nativeComponent('gl-2d-image')
-class GLImage extends GLRect {
+export class GLImage extends GLRect {
   texture = null;
   uri = null;
 
@@ -161,10 +161,8 @@ class GLImage extends GLRect {
   }
 }
 
-global.GLImage = GLImage;
-
 @nativeComponent('gl-2d-layer')
-class GLLayer extends GLContainer {
+export class GLLayer extends GLContainer {
   // defaults to -1 to 1
   @prop x = 0;
   @prop y = 0;
@@ -179,7 +177,7 @@ class GLLayer extends GLContainer {
 }
 
 @nativeComponent('gl-2d-node')
-class GLNode2D extends GLContainer {
+export class GLNode2D extends GLContainer {
   // defaults to -1 to 1
   @prop x = 0;
   @prop y = 0;
@@ -201,7 +199,7 @@ class GLNode2D extends GLContainer {
 }
 
 @nativeComponent('gl-surface')
-class GLSurface extends NativeElementComponent {
+export class GLSurface extends NativeElementComponent {
   gl;
 
   renderTimer = null;
@@ -218,9 +216,6 @@ class GLSurface extends NativeElementComponent {
     if (!this.gl) {
       this.initGL();
       this.performRender();
-    } else {
-      // Remounted, size may changed.
-      // this.render(this.gl);
     }
   }
 

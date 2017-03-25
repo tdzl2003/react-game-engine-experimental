@@ -44,6 +44,10 @@ module.exports = {
         test: /.shader$/,
         loader: 'raw-loader',
       },
+      {
+        test: /\.png|\.jpg/,
+        loader: 'file-loader',
+      },
     ],
   },
   resolve: {
