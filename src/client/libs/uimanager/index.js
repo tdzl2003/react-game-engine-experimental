@@ -4,17 +4,17 @@
 
 import Module, { serverModule, method, asyncMethod } from '../bridge/Module';
 
-let postEvent = function (id, name, ev) {
+let postEvent = function (eventId, name, ...args) {
   // Should have remote event here.
   const { remoteModules: {
     UIEventEmitter,
   }  } = global.__bridgeServer;
 
-  postEvent = function(eventId, name, ev) {
-    UIEventEmitter.emit(eventId, name);
+  postEvent = function(eventId, name, ...args) {
+    UIEventEmitter.emit(eventId, name, ...args);
   };
-  return postEvent.call(this, id, name, ev);
-}
+  return postEvent.call(null, eventId, name, ...args);
+};
 
 export class NativeComponent {
   reactId = null;
@@ -27,12 +27,9 @@ export class NativeComponent {
   }
 
   sendEvent(eventName, ...args) {
-    const { remoteModules: {
-      UIEventEmitter,
-    }  } = global.__bridgeServer;
     const v = this.events[eventName];
     if (v) {
-      UIEventEmitter.emit(this.eventId, eventName, ...args);
+      postEvent(this.eventId, eventName, ...args);
     }
   }
 
@@ -95,8 +92,12 @@ export class NativeElementComponent extends NativeComponent {
         case 'events': {
           for (const name of Object.keys(value)) {
             if (value[name]) {
-              this.events[name] = true;
+              const f = this.events[name] = (ev) => {
+                postEvent(this.eventId, name);
+              };
+              this.el.addEventListener(name.toLowerCase(), f);
             } else {
+              this.el.removeEventListener(name.toLowerCase(), this.events[name]);
               delete this.events[name];
             }
           }
@@ -197,7 +198,9 @@ export default class UIManager extends Module {
     const Clazz = this.nativeComponents[tagName];
     const el = Clazz ? new Clazz(id, eventId) : new NativeElementComponent(id, eventId, tagName)
     this.viewRegistry[id] = el;
-    el.setViewProps(initialProps);
+    if (initialProps) {
+      el.setViewProps(initialProps);
+    }
     this.mountView(container, before, el);
   }
 

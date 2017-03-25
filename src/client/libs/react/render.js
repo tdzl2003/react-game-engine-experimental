@@ -426,10 +426,16 @@ export class ReactMount {
     }
 
     this.jsx = jsx;
+    if (jsx.ref) {
+      jsx.ref(this.instance);
+    }
   }
 
   unmount() {
     const type = getType(this.jsx);
+    if (this.jsx.ref) {
+      this.jsx.ref(null);
+    }
     if (typeof type === 'string') {
       unmountAllChildren(this.nativeId, this.children);
     }
@@ -456,6 +462,14 @@ export class ReactMount {
       this.unmount();
       this.mount(newJsx, this.container, this.before);
       return false;
+    }
+    if (newJsx.ref !== this.jsx.ref) {
+      if (this.jsx.ref) {
+        this.jsx.ref(null);
+      }
+      if (newJsx.ref) {
+        this.jsx.ref(this.instance);
+      }
     }
     while (typeof type === 'function' && !(type.prototype instanceof Component)) {
       // stateless functional component

@@ -18,6 +18,7 @@ export default function createJSX(type, props) {
   return {
     type,
     key,
+    ref: props.ref,
     props,
   };
 }
