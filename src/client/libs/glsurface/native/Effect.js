@@ -24,7 +24,9 @@ export default class Effect extends AssetType {
     const fs = this.loadShader(gl.FRAGMENT_SHADER, pass.fs);
     const program = gl.createProgram();
     gl.attachShader(program, vs);
+    gl.deleteShader(vs);
     gl.attachShader(program, fs);
+    gl.deleteShader(fs);
     for (let i = 0; i < this.streams.length; i++) {
       const stream = this.streams[i];
       if (stream) {
@@ -36,6 +38,8 @@ export default class Effect extends AssetType {
 
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       console.error('Unable to initialize the shader program: ' + gl.getProgramInfoLog(program));
+      gl.deleteProgram(program);
+      return;
     }
 
     const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
