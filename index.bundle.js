@@ -2068,7 +2068,7 @@ const bridge = global.__bridgeServer = new __WEBPACK_IMPORTED_MODULE_0_bridge_Br
 __webpack_require__(8);
 
 if (global.Worker) {
-  const w = new Worker('/ww.bundle.js');
+  const w = new Worker('/react-game-engine-experimental/ww.bundle.js');
   bridge.install(w);
   console.log('Server installed.');
 } else {
