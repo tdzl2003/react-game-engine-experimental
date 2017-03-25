@@ -12,6 +12,7 @@ class App extends Component {
   surfaceInfo = {};
 
   onSizeChanged = info => {
+    console.log(`GLSurface Size: ${info.width}x${info.height} Ratio: ${info.ratio}`)
     this.surfaceInfo = info;
   };
 

@@ -206,8 +206,8 @@ export class GLSurface extends NativeElementComponent {
 
   container = new GLContainer();
 
-  createElement() {
-    return document.createElement('canvas');
+  constructor(id, eventId) {
+    super(id, eventId, 'canvas');
   }
 
   mount(parentNode, before) {

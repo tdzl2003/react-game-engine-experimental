@@ -19,17 +19,26 @@ const {
   createEmptyNode,
 } = UIManager;
 
-let viewIdCounter = 0;
+let nativeIdCounter = 0;
+const nativeIdRecycler = [];
 
-const viewIdRecycler = [];
-const viewRegistry = [];
+let eventIdCounter = 0;
+const eventIdRecycler = [];
+const eventIdRegistry = [];
+
+function allocEventId() {
+  if (eventIdRecycler.length > 0) {
+    return eventIdRecycler.pop();
+  }
+  return ++eventIdCounter;
+}
 
 @clientModule
 class UIEventEmitter extends Module {
 
   @method
   emit(id, name, ...args) {
-    const mount = viewRegistry[id];
+    const mount = eventIdRegistry[id];
     if (!mount/* || !mount.jsx*/) {
       return;
     }
@@ -42,11 +51,11 @@ class UIEventEmitter extends Module {
   }
 }
 
-function allocViewId() {
-  if (viewIdCounter.length > 0) {
-    return viewIdCounter.pop();
+function allocNativeId() {
+  if (nativeIdCounter.length > 0) {
+    return nativeIdCounter.pop();
   }
-  return ++viewIdCounter;
+  return ++nativeIdCounter;
 }
 
 const TextNode = {};
@@ -263,7 +272,7 @@ function updateChildrenArray(container, children, newChildrenJSX) {
       mount.moveTo(container, lastMountId);
       mount.update(jsx);
     } else {
-      mount = new ReactMount();
+      mount = new ReactMountRoot();
       mount.mount(jsx, container, lastMountId);
     }
 
@@ -292,13 +301,13 @@ function updateChildren(container, children, _newChildrenJSX) {
   } else if (!children.length) {
     // no children before update.
     if (!Array.isArray(newChildrenJSX)) {
-      const ret = new ReactMount();
+      const ret = new ReactMountRoot();
       ret.mount(newChildrenJSX, container);
       children.push(ret);
     } else {
       let lastMounted = null;
       for (const child of newChildrenJSX) {
-        const ret = new ReactMount();
+        const ret = new ReactMountRoot();
         ret.mount(child, container);
         if (lastMounted) {
           lastMounted.setBefore(ret.nativeId);
@@ -311,7 +320,7 @@ function updateChildren(container, children, _newChildrenJSX) {
     let mount = null;
     if (newChildrenJSX.key) {
       // 有key，直接找到对应的节点来update。找不到就重新创建。
-      mount = children.find(v => v.key === newChildrenJSX.key) || new ReactMount();
+      mount = children.find(v => v.key === newChildrenJSX.key) || new ReactMountRoot();
     } else {
       const type = getType(newChildrenJSX);
       if (type === TextNode) {
@@ -322,7 +331,7 @@ function updateChildren(container, children, _newChildrenJSX) {
       mount = mount || children.find(v => !v.key);
     }
 
-    mount = mount || new ReactMount();
+    mount = mount || new ReactMountRoot();
 
     for (const child of children) {
       if (child !== mount) {
@@ -356,11 +365,7 @@ export class ReactMount {
   children = null;
 
   constructor(nativeId) {
-    if (nativeId !== undefined) {
-      this.nativeId = nativeId;
-    } else {
-      this.nativeId = allocViewId();
-    }
+    this.nativeId = nativeId;
   }
 
   get key() {
@@ -387,20 +392,22 @@ export class ReactMount {
     } else if (type === EmptyNode) {
       createEmptyNode(this.nativeId, container, before);
     } else if (typeof(type) === 'string') {
-      viewRegistry[this.nativeId] = this;
       // dom
       const setProps = blacklistProps(jsx.props, {
         children: true,
         ref: true,
         key: true,
       });
-      createView(this.nativeId, container, setProps, jsx.type, before);
+      const eventId = this.instance = allocEventId();
+
+      createView(this.nativeId, eventId, container, setProps, jsx.type, before);
+      eventIdRegistry[eventId] = this;
       // if (setProps) {
       //   setViewProps(this.nativeId, setProps);
       // }
       let last = null;
       this.children = map(jsx.props.children, jsx => {
-        const ret = new ReactMount();
+        const ret = new ReactMountRoot();
         ret.mount(jsx, this.nativeId);
         if (last) {
           last.setBefore(ret.nativeId);
@@ -421,20 +428,19 @@ export class ReactMount {
     this.jsx = jsx;
   }
 
-  unmount(recycle = true) {
+  unmount() {
     const type = getType(this.jsx);
     if (typeof type === 'string') {
-      delete viewRegistry[this.nativeId];
       unmountAllChildren(this.nativeId, this.children);
     }
     if (typeof type !== 'function') {
-      const p = destroyView(this.nativeId, this.container);
-      if (recycle) {
-        p.then(() => {
-          // 得到主线程回复才认为真正销毁成功，回收对应视图Id。
-          viewIdRecycler.push(this.nativeId);
-        })
-      }
+      const eventId = this.instance;
+      this.instance = null;
+      delete eventIdRegistry[eventId];
+      destroyView(this.nativeId, this.container)
+        .then(() => {
+          eventIdRecycler.push(eventId);
+        });
     } else {
       // composite components
       this.instance.componentWillUnmount();
@@ -447,7 +453,7 @@ export class ReactMount {
   update(newJsx) {
     let type = getType(newJsx);
     if (type !== getType(this.jsx) || newJsx.key !== this.jsx.key) {
-      this.unmount(false);
+      this.unmount();
       this.mount(newJsx, this.container, this.before);
       return false;
     }
@@ -475,7 +481,7 @@ export class ReactMount {
         diffProps.style = diffStyle;
       }
       if (diffProps) {
-        setViewProps(this.nativeId, diffProps);
+        setViewProps(this.nativeId, this.instance, diffProps);
       }
       updateChildren(this.nativeId, this.children, newJsx.props.children);
     } else {
@@ -493,7 +499,7 @@ export class ReactMount {
   }
 
   moveTo(container, before) {
-    if (this.instance) {
+    if (typeof(this.instance) !== 'number') {
       this.instance.mount.moveTo(container, before);
     } else {
       moveView(this.nativeId, container, before);
@@ -505,17 +511,29 @@ export class ReactMount {
 
   // 仅在尾部节点后面又插入节点的额情况下用
   setBefore(before) {
-    if (this.instance) {
+    if (typeof(this.instance) !== 'number') {
       this.instance.mount.setBefore(before);
     }
     this.before = before;
   }
 }
 
+export class ReactMountRoot extends ReactMount {
+  constructor() {
+    super(allocNativeId());
+  }
+
+  unmount() {
+    super.unmount();
+    nativeIdRecycler.push(this.nativeId);
+  }
+}
+
 export default function renderRoot(jsx, container = null) {
   const { type, props } = jsx;
 
-  const ret = new ReactMount();
+  const ret = new ReactMountRoot();
   ret.mount(jsx, container);
+
   return ret;
 }

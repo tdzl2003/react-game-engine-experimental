@@ -10,69 +10,20 @@ let postEvent = function (id, name, ev) {
     UIEventEmitter,
   }  } = global.__bridgeServer;
 
-  postEvent = function(id, name, ev) {
-    UIEventEmitter.emit(id, name);
+  postEvent = function(eventId, name, ev) {
+    UIEventEmitter.emit(eventId, name);
   };
   return postEvent.call(this, id, name, ev);
 }
 
-function updateProps(view, props) {
-  for (const key of Object.keys(props)) {
-    const value = props[key];
-
-    switch (key) {
-      case 'style': {
-        for (const name of Object.keys(value)) {
-          let styleValue = value[name];
-          if (typeof(styleValue) === 'number') {
-            styleValue = `${styleValue}px`;
-          }
-          view.style[name] = styleValue;
-        }
-        break;
-      }
-      case 'events': {
-        for (const name of Object.keys(value)) {
-          const eventKey = `${id}.name`;
-          let eventName = name;
-          let useCapture = false;
-          if (eventName.substr(-7) === 'Capture') {
-            eventName = eventName.substr(0, eventName.length - 7);
-            useCapture = true;
-          }
-
-          if (value[name]) {
-            // add listener.
-            const f = ev => postEvent.call(view, id, name, ev);
-            this.eventRegistry[eventKey] = f;
-            view.addEventListener(eventName.toLowerCase(), f, useCapture);
-          } else {
-            // remove listener
-            const f = this.eventRegistry[eventKey];
-            delete this.eventRegistry[eventKey];
-            view.removeEventListener(eventName.toLowerCase(), f);
-          }
-        }
-        break;
-      }
-      default:{
-        if (value === null) {
-          view.removeAttribute(key);
-        } else {
-          view.setAttribute(key, value);
-        }
-        break;
-      }
-    }
-  }
-}
-
 export class NativeComponent {
   reactId = null;
+  eventId = null;
   events = {};
 
-  constructor(id) {
+  constructor(id, eventId) {
     this.reactId = id;
+    this.eventId = eventId;
   }
 
   sendEvent(eventName, ...args) {
@@ -81,7 +32,7 @@ export class NativeComponent {
     }  } = global.__bridgeServer;
     const v = this.events[eventName];
     if (v) {
-      UIEventEmitter.emit(this.reactId, eventName, ...args);
+      UIEventEmitter.emit(this.eventId, eventName, ...args);
     }
   }
 
@@ -114,16 +65,14 @@ export class NativeComponent {
 export class NativeElementComponent extends NativeComponent {
   el = null;
 
-  constructor(id) {
-    super(id);
+  constructor(id, eventId, tagName) {
+    super(id, eventId, tagName);
 
-    this.el = this.createElement();
+    this.el = document.createElement(tagName);
     if (__DEV__) {
-      this.el.setAttribute('data-react-id', this.reactId);
+      this.el.setAttribute('data-react-id', id);
+      this.el.setAttribute('data-react-event-id', eventId);
     }
-  }
-
-  createElement() {
   }
 
   insertBefore(el, ref) {
@@ -243,26 +192,13 @@ export default class UIManager extends Module {
 
   viewRegistry = [];
 
-  eventRegistry = {};
-
   @method
-  createView(id, container, initialProps, tagName, before) {
+  createView(id, eventId, container, initialProps, tagName, before) {
     const Clazz = this.nativeComponents[tagName];
-    if (Clazz) {
-      const el = new Clazz(id);
-      this.viewRegistry[id] = el;
-      el.setViewProps(initialProps);
-      this.mountView(container, before, el);
-      return;
-    }
-    const el = document.createElement(tagName);
-    updateProps(el, initialProps);
-    this.mountView(container, before, el);
+    const el = Clazz ? new Clazz(id, eventId) : new NativeElementComponent(id, eventId, tagName)
     this.viewRegistry[id] = el;
-
-    if (__DEV__) {
-      el.setAttribute('data-react-id', id);
-    }
+    el.setViewProps(initialProps);
+    this.mountView(container, before, el);
   }
 
   @method
@@ -321,13 +257,13 @@ export default class UIManager extends Module {
   }
 
   @method
-  setViewProps(id, props) {
+  setViewProps(id, eventId, props) {
     const view = this.viewRegistry[id];
     if (view instanceof NativeComponent) {
       view.setViewProps(props);
       return;
     }
-    updateProps(view, props);
+    updateProps(view, id, eventId, props);
   }
 
   @asyncMethod
