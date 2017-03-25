@@ -37,7 +37,20 @@ class App extends Component {
         >
           <gl-2d-layer width={2} height={2/width*height}>
             {/*<gl-2d-node rotate={Math.PI/4}>*/}
-              <gl-2d-image x={-0.5} y={-0.5} w={1} h={1} src={require('./assets/images/chicken.png')}/>
+            <gl-2d-basic-animation
+              src={require('./assets/images/chicken.png')}
+              animationData={[
+                0,1,2,1, 0,1,2,1, 0,1,2,1, 0,1,2,1,
+                3,4,5,4, 3,4,5,4, 3,4,5,4, 3,4,5,4,
+                6,7,8,7, 6,7,8,7, 6,7,8,7, 6,7,8,7,
+                9,10,11,10,9,10,11,10,9,10,11,10,9,10,11,10,
+              ]}
+              columns={3}
+              tileW={0.25}
+              tileH={0.25}
+              interval={120}
+            />
+              {/*<gl-2d-image x={-0.5} y={-0.5} w={1} h={1} src={require('./assets/images/chicken.png')}/>*/}
               {/*<gl-2d-rect x={-0.25} y={-0.75} w={0.5} h={1.5} g={1} a={0.3}/>*/}
               {/*<gl-2d-rect x={-0.75} y={-0.25} w={1.5} h={0.5} r={1} b={1} a={0.6}/>*/}
             {/*</gl-2d-node>*/}

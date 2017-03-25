@@ -21,7 +21,6 @@ function powerOfTwo(num) {
 export class ImageTexture extends AssetType {
   uri;
   texture;
-  loaded = false;
   info = null;
 
   constructor(gl, uri) {
@@ -60,7 +59,6 @@ export class ImageTexture extends AssetType {
         if (__DEV__) {
           console.log(`Texture loaded: ${this.uri} ${width}x${height} (${texWidth}x${texHeight})`);
         }
-        this.loaded = true;
         this.info = {
           width,
           height,
@@ -71,9 +69,13 @@ export class ImageTexture extends AssetType {
     };
   }
 
+  get loaded() {
+    return !!this.info;
+  }
+
   unload(gl) {
     gl.deleteTexture(this.texture);
     this.texture = null;
+    this.info = null;
   }
-
 };
